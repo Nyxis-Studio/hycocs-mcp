@@ -22,5 +22,8 @@ Thumbs.db
 *.swp
 *.swo
 
+# Local tooling
+.claude/
+
 # TypeScript
 *.tsbuildinfo
