@@ -30,14 +30,17 @@ RUN npm ci --only=production
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Note: build directory (documentation files) will be mounted as volume
-# See docker-compose.yml for volume configuration
+# Create documentation directory
+# This supports two modes:
+# 1. Auto-download: Set DOCS_URL env var to download docs on startup
+# 2. Volume mount: Mount external docs directory (for backward compatibility)
+RUN mkdir -p /app/docs
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Change ownership
+# Change ownership (including docs directory for auto-download)
 RUN chown -R nodejs:nodejs /app
 
 # Switch to non-root user

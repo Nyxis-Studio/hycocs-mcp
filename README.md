@@ -8,7 +8,24 @@ A Model Context Protocol (MCP) server that provides programmatic access to Hydoc
 - Streamable HTTP MCP transport
 - Fast class search and full doc retrieval
 - Health check endpoint
+- **Auto-download documentation from MinIO** (via pre-signed URL)
 - Optional monitoring integrations
+
+## Documentation Management
+
+The server supports two methods for loading documentation:
+
+### 1. Auto-download (Recommended for production)
+
+Set the `DOCS_URL` environment variable to a pre-signed MinIO URL. The server will:
+- Download and extract the documentation ZIP on first startup
+- Track the URL in `.last-download-url` to detect changes
+- Skip download if the URL hasn't changed (fast restarts)
+- Re-download automatically when the URL changes
+
+### 2. Local directory (Development)
+
+Point `DOCS_DIR` to a local directory containing the documentation build output.
 
 ## Architecture
 
@@ -47,7 +64,9 @@ mcp/
 ## Requirements
 
 - Node.js 18+
-- Hydocs documentation build output available (see `DOCS_DIR`)
+- One of the following:
+  - Pre-signed MinIO URL with documentation ZIP (recommended for production)
+  - Local Hydocs documentation build output (for development)
 
 ## Configuration
 
@@ -59,6 +78,14 @@ Minimal config for local development:
 PORT=3000
 DOCS_DIR=../build
 LOG_LEVEL=info
+```
+
+Optional auto-download config:
+
+```env
+# Download documentation from pre-signed URL
+DOCS_URL=https://minio.example.com/docs/latest.zip?X-Amz-...
+DOCS_DOWNLOAD_TIMEOUT=300000
 ```
 
 Optional monitoring config (Nyxis stack):
@@ -85,16 +112,42 @@ Server endpoints:
 - MCP: `POST http://localhost:3000/mcp`
 - Health: `GET http://localhost:3000/health`
 
-## Docker Build (single image)
+## Docker Deployment
+
+### Build the image
 
 ```bash
 docker build -t hydocs-mcp:local .
+```
 
+### Option 1: Auto-download (Recommended)
+
+Download documentation automatically from a pre-signed URL:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e DOCS_URL="https://minio.example.com/docs/latest.zip?X-Amz-..." \
+  -e DOCS_DIR=/app/docs \
+  hydocs-mcp:local
+```
+
+The server will:
+- Download and extract the ZIP on first startup
+- Skip download if the URL hasn't changed
+- Re-download when the URL changes
+
+### Option 2: Volume mount (Legacy)
+
+Mount documentation from the host filesystem:
+
+```bash
 docker run --rm -p 3000:3000 \
   -e DOCS_DIR=/app/docs \
   -v /path/to/build:/app/docs:ro \
   hydocs-mcp:local
 ```
+
+**Note:** When using auto-download, do not mount the docs directory as readonly (`:ro`).
 
 ## Monitoring Support
 
@@ -175,9 +228,13 @@ If you want metrics and logs, connect the MCP service to the Nyxis monitoring st
 
 ## Troubleshooting
 
-- If the server cannot find documentation, verify `DOCS_DIR` and `class_lookup.json`.
-- If metrics are missing, ensure the MCP container can reach the Pushgateway.
-- If logs are missing, set `LOG_LEVEL=info` or `debug`.
+- **Server cannot find documentation**: Verify `DOCS_DIR` and that `class_lookup.json` exists
+- **Auto-download fails**: Check that `DOCS_URL` is valid and accessible
+- **Download timeout**: Increase `DOCS_DOWNLOAD_TIMEOUT` for slow connections
+- **Server exits on startup**: If download fails and no local docs exist, server will exit with error
+- **Docs not updating**: Check that the URL has changed (server uses URL comparison for caching)
+- **Metrics are missing**: Ensure the MCP container can reach the Pushgateway
+- **Logs are missing**: Set `LOG_LEVEL=info` or `debug`
 
 ## Contributing
 

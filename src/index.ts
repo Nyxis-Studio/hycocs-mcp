@@ -30,6 +30,10 @@ import {
   stopMetricsPush,
 } from "./utils/metrics.js";
 import { searchHytaleClasses, readHytaleClassDocs } from "./tools/handlers.js";
+import {
+  downloadAndExtractDocs,
+  validateDocsDirectory,
+} from "./utils/download.js";
 import type {
   SearchHytaleClassesArgs,
   ReadHytaleClassDocsArgs,
@@ -37,6 +41,26 @@ import type {
 
 // Load configuration
 const config = loadConfig();
+
+// Download documentation if URL is provided
+if (config.docsUrl) {
+  try {
+    await downloadAndExtractDocs(config);
+  } catch (error) {
+    logger.error("Failed to download documentation", {
+      error: error instanceof Error ? error.message : String(error),
+      docsUrl: config.docsUrl,
+    });
+
+    // Check if docs exist locally
+    const docsExist = await validateDocsDirectory(config.docsDir);
+    if (!docsExist) {
+      logger.error("No local documentation found and download failed. Cannot start server.");
+      process.exit(1);
+    }
+    logger.warn("Download failed but local docs exist. Continuing with existing docs.");
+  }
+}
 
 // Create MCP Server
 const mcpServer = new Server(

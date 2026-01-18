@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 const DEFAULT_PORT = 3000;
 const DEFAULT_LOG_LEVEL = "info";
 const DEFAULT_METRICS_PUSH_INTERVAL = 10000; // 10 seconds
+const DEFAULT_DOCS_DOWNLOAD_TIMEOUT = 300000; // 5 minutes
 
 /**
  * Load server configuration from environment variables with fallbacks
@@ -35,6 +36,12 @@ export function loadConfig(): ServerConfig {
     enableMetricsPush: process.env.ENABLE_METRICS_PUSH === "true",
     metricsPushInterval: parseInt(
       process.env.METRICS_PUSH_INTERVAL || String(DEFAULT_METRICS_PUSH_INTERVAL),
+      10
+    ),
+    // Documentation Download
+    docsUrl: process.env.DOCS_URL,
+    docsDownloadTimeout: parseInt(
+      process.env.DOCS_DOWNLOAD_TIMEOUT || String(DEFAULT_DOCS_DOWNLOAD_TIMEOUT),
       10
     ),
   };

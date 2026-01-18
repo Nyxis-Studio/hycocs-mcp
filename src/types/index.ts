@@ -25,6 +25,9 @@ export interface ServerConfig {
   pushgatewayUrl?: string;
   enableMetricsPush: boolean;
   metricsPushInterval: number;
+  // Documentation Download
+  docsUrl?: string;
+  docsDownloadTimeout: number;
 }
 
 export interface ToolCallMetrics {
